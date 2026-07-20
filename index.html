@@ -1,0 +1,2382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kolfe Keranyo · Trade Information System</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    
+    <style>
+        /* ========================================
+                   COMPLETE STYLES - SELF CONTAINED
+                   ======================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1A5276;
+            --primary-light: #2980B9;
+            --primary-dark: #0E2F44;
+            --secondary: #27AE60;
+            --accent: #F39C12;
+            --danger: #E74C3C;
+            --purple: #8E44AD;
+            --bg-light: #F0F4F8;
+            --text-dark: #2C3E50;
+            --text-gray: #7F8C8D;
+            --shadow: 0 4px 20px rgba(0,0,0,0.1);
+            --radius: 16px;
+            --radius-sm: 8px;
+            --transition: all 0.3s ease;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-light);
+            color: var(--text-dark);
+            overflow: hidden;
+        }
+
+        /* ==================== HEADER ==================== */
+        .header {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 1000;
+            flex-shrink: 0;
+            min-height: 54px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-logo {
+            width: 34px;
+            height: 34px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: var(--primary);
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .header h1 small {
+            display: block;
+            font-size: 0.55rem;
+            font-weight: 400;
+            opacity: 0.8;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .header-btn {
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+        }
+
+        .header-btn:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        /* ==================== STATUS BAR ==================== */
+        .status-bar {
+            background: var(--primary-light);
+            color: white;
+            padding: 5px 12px;
+            text-align: center;
+            font-size: 0.7rem;
+            font-weight: 500;
+            z-index: 1000;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 28px;
+        }
+
+        .status-bar.success { background: var(--secondary); }
+        .status-bar.warning { background: var(--accent); }
+        .status-bar.error { background: var(--danger); }
+        .status-bar.route { background: var(--purple); }
+
+        /* ==================== MAP ==================== */
+        #map {
+            flex: 1;
+            width: 100%;
+            z-index: 1;
+            background: #E8ECF1;
+            min-height: 200px;
+        }
+
+        /* ==================== INFO PANEL ==================== */
+        .info-panel {
+            background: white;
+            border-radius: var(--radius) var(--radius) 0 0;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.12);
+            z-index: 1000;
+            max-height: 45vh;
+            transition: max-height 0.3s ease;
+            flex-shrink: 0;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        .panel-header {
+            padding: 10px 16px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 5;
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+
+        .panel-header h3 {
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .panel-header .badge {
+            background: var(--primary-light);
+            color: white;
+            padding: 1px 10px;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            font-weight: 600;
+        }
+
+        .panel-toggle {
+            background: none;
+            border: none;
+            color: var(--text-gray);
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .panel-content {
+            padding: 10px 14px;
+        }
+
+        .location-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .info-card {
+            background: var(--bg-light);
+            padding: 6px 8px;
+            border-radius: var(--radius-sm);
+            text-align: center;
+            border: 1px solid #e8ecf0;
+        }
+
+        .info-card .label {
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            color: var(--text-gray);
+            font-weight: 600;
+        }
+
+        .info-card .value {
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-top: 1px;
+            font-family: monospace;
+        }
+
+        .accuracy-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #EBF5FB;
+            padding: 4px 12px;
+            border-radius: 30px;
+            border: 1px solid var(--primary-light);
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        .accuracy-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--secondary);
+            animation: pulse 2s infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes pulse {
+            0%,
+            100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.7; }
+        }
+
+        .accuracy-dot.excellent { background: var(--secondary); }
+        .accuracy-dot.good { background: var(--accent); }
+        .accuracy-dot.poor { background: var(--danger); }
+
+        .accuracy-text {
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .route-info {
+            background: #F3E8FF;
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 6px;
+            border: 1px solid var(--purple);
+        }
+
+        .route-info.show { display: flex; }
+
+        .route-details {
+            display: flex;
+            gap: 14px;
+        }
+
+        .route-detail {
+            text-align: center;
+        }
+
+        .route-detail .label {
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            color: #6C3483;
+            font-weight: 600;
+        }
+
+        .route-detail .value {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #4A235A;
+        }
+
+        .clear-route-btn {
+            background: var(--purple);
+            color: white;
+            border: none;
+            padding: 3px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            font-weight: 600;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .clear-route-btn:hover { background: #7D3C98; }
+
+        .permission-box {
+            background: #FFFBEB;
+            border: 1px solid var(--accent);
+            border-radius: var(--radius-sm);
+            padding: 10px;
+            text-align: center;
+            margin-bottom: 10px;
+            display: none;
+        }
+
+        .permission-box.show { display: block; }
+
+        .permission-box i {
+            font-size: 1.3rem;
+            color: var(--accent);
+        }
+
+        .permission-box h4 { font-size: 0.8rem; }
+        .permission-box p { font-size: 0.7rem; color: var(--text-gray); }
+
+        .permission-box button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 4px 16px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 6px;
+        }
+
+        .permission-box button:hover { background: #E67E22; }
+
+        .error-message {
+            background: #FDEDEC;
+            color: #C0392B;
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 10px;
+            display: none;
+            font-size: 0.75rem;
+            border-left: 3px solid var(--danger);
+        }
+
+        .error-message.show { display: block; }
+
+        .places-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .places-header h4 {
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .places-header .count {
+            background: var(--primary-light);
+            color: white;
+            padding: 1px 10px;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            font-weight: 600;
+        }
+
+        .places-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 6px;
+            max-height: 140px;
+            overflow-y: auto;
+            padding: 2px;
+        }
+
+        .place-card {
+            background: white;
+            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #E8ECF1;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .place-card:hover {
+            border-color: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .place-card .rank {
+            position: absolute;
+            top: -6px;
+            left: -6px;
+            background: linear-gradient(135deg, var(--primary-light), var(--primary));
+            color: white;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.55rem;
+            font-weight: 700;
+            box-shadow: var(--shadow);
+        }
+
+        .place-card .name {
+            font-weight: 600;
+            font-size: 0.75rem;
+            padding-left: 10px;
+        }
+
+        .place-card .distance {
+            color: var(--secondary);
+            font-weight: 500;
+            font-size: 0.65rem;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .place-card .subcity {
+            color: var(--text-gray);
+            font-size: 0.6rem;
+        }
+
+        .place-card .items-count {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 0 6px;
+            border-radius: 10px;
+            font-size: 0.55rem;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        .place-card .route-btn {
+            background: var(--purple);
+            color: white;
+            border: none;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.6rem;
+            cursor: pointer;
+            margin-top: 4px;
+            transition: var(--transition);
+        }
+
+        .place-card .route-btn:hover { background: #7D3C98; }
+
+        /* ==================== MODALS ==================== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 3000;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+
+        .modal-overlay.show { display: flex; }
+
+        .modal {
+            background: white;
+            border-radius: var(--radius);
+            max-width: 550px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            padding: 14px 18px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 1;
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+
+        .modal-header h3 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: var(--text-gray);
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        .modal-close:hover { background: #f0f0f0; border-radius: 50%; }
+
+        .modal-body { padding: 14px 18px; }
+
+        .modal-body .subcity-info {
+            font-size: 0.75rem;
+            color: var(--text-gray);
+            margin-bottom: 10px;
+        }
+
+        .items-list { display: grid; gap: 6px; }
+
+        .item-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: var(--bg-light);
+            border-radius: var(--radius-sm);
+            border-left: 3px solid var(--secondary);
+        }
+
+        .item-row .item-name {
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        .item-row .item-category {
+            font-size: 0.65rem;
+            color: var(--text-gray);
+        }
+
+        .item-row .price {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--secondary);
+        }
+
+        .item-row .currency {
+            font-size: 0.65rem;
+            color: var(--text-gray);
+        }
+
+        .no-items {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-gray);
+        }
+
+        .no-items i {
+            font-size: 2rem;
+            color: #ddd;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        /* ==================== CRUD MODAL ==================== */
+        .crud-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 5000;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+
+        .crud-modal-overlay.show { display: flex; }
+
+        .crud-modal {
+            background: white;
+            border-radius: var(--radius);
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .crud-header {
+            padding: 14px 20px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            color: white;
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+
+        .crud-header h2 {
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .crud-header .close-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: var(--transition);
+        }
+
+        .crud-header .close-btn:hover { background: rgba(255,255,255,0.3); }
+
+        .crud-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            flex-shrink: 0;
+            overflow-x: auto;
+        }
+
+        .crud-tab {
+            padding: 10px 18px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--text-gray);
+            transition: var(--transition);
+            border-bottom: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .crud-tab:hover {
+            color: var(--text-dark);
+            background: rgba(0,0,0,0.02);
+        }
+
+        .crud-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .crud-tab .badge {
+            background: var(--primary-light);
+            color: white;
+            padding: 0 6px;
+            border-radius: 10px;
+            font-size: 0.6rem;
+        }
+
+        .crud-body {
+            padding: 16px 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .crud-tab-content { display: none; }
+        .crud-tab-content.active { display: block; }
+
+        .crud-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .crud-toolbar .search-box {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-light);
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .crud-toolbar .search-box input {
+            border: none;
+            background: none;
+            outline: none;
+            padding: 4px 0;
+            font-size: 0.8rem;
+            width: 160px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.8rem;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: scale(1.02);
+        }
+
+        .btn-success {
+            background: var(--secondary);
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+
+        .btn-success:hover { background: #1E8449; }
+
+        .btn-warning {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+
+        .btn-warning:hover { background: #E67E22; }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+
+        .btn-danger:hover { background: #C0392B; }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+        }
+
+        .data-table th {
+            background: #f8f9fa;
+            padding: 8px 10px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #e9ecef;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+
+        .data-table td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+        }
+
+        .data-table tr:hover td { background: #f8f9fa; }
+
+        .data-table .actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .data-table .actions button {
+            padding: 2px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.65rem;
+            transition: var(--transition);
+        }
+
+        .data-table .actions .edit-btn {
+            background: #EBF5FB;
+            color: var(--primary);
+        }
+
+        .data-table .actions .edit-btn:hover { background: #D4E6F1; }
+
+        .data-table .actions .delete-btn {
+            background: #FDEDEC;
+            color: var(--danger);
+        }
+
+        .data-table .actions .delete-btn:hover { background: #FADBD8; }
+
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-gray);
+        }
+
+        .empty-state i {
+            font-size: 2.5rem;
+            color: #ddd;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        /* ==================== FORM MODAL ==================== */
+        .form-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 6000;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+
+        .form-modal-overlay.show { display: flex; }
+
+        .form-modal {
+            background: white;
+            border-radius: var(--radius);
+            max-width: 550px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .form-modal h3 {
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-dark);
+            font-size: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.75rem;
+            margin-bottom: 2px;
+        }
+
+        .form-group .label-hint {
+            font-size: 0.65rem;
+            color: var(--text-gray);
+            font-weight: 400;
+            display: block;
+            margin-top: 2px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(41, 128, 185, 0.1);
+        }
+
+        .form-group input[readonly] {
+            background: #f0f0f0;
+            cursor: not-allowed;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 50px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+            justify-content: flex-end;
+        }
+
+        .form-actions button {
+            padding: 8px 20px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .form-actions .btn-submit {
+            background: var(--primary);
+            color: white;
+        }
+
+        .form-actions .btn-submit:hover { background: var(--primary-dark); }
+
+        .form-actions .btn-cancel {
+            background: #e2e8f0;
+            color: var(--text-dark);
+        }
+
+        .form-actions .btn-cancel:hover { background: #cbd5e0; }
+
+        .form-actions .btn-map-pick {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .form-actions .btn-map-pick:hover { background: #E67E22; }
+
+        /* Mini Map in Form */
+        .mini-map-container {
+            position: relative;
+            margin-bottom: 12px;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 2px solid #e2e8f0;
+        }
+
+        #miniMap {
+            width: 100%;
+            height: 250px;
+            z-index: 1;
+        }
+
+        .mini-map-hint {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.65rem;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .mini-map-hint i { margin-right: 4px; }
+
+        .selected-coords {
+            background: #EBF5FB;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 12px;
+            display: none;
+            font-size: 0.8rem;
+            border-left: 3px solid var(--primary);
+        }
+
+        .selected-coords.show { display: block; }
+
+        .selected-coords strong {
+            color: var(--primary);
+        }
+
+        /* ==================== TOAST ==================== */
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            border-radius: var(--radius-sm);
+            color: white;
+            font-weight: 500;
+            z-index: 7000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            font-size: 0.85rem;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success { background: var(--secondary); }
+        .toast.error { background: var(--danger); }
+        .toast.warning { background: var(--accent); }
+
+        /* ==================== LOADING ==================== */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 4000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loading-overlay.show { display: flex; }
+
+        .loading-content {
+            background: white;
+            padding: 20px 28px;
+            border-radius: var(--radius);
+            text-align: center;
+            max-width: 260px;
+        }
+
+        .loading-content .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid #f0f0f0;
+            border-top: 3px solid var(--primary-light);
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-content h3 {
+            font-size: 0.85rem;
+        }
+
+        .loading-content p {
+            font-size: 0.7rem;
+            color: var(--text-gray);
+        }
+
+        /* ==================== ADMIN BUTTON ==================== */
+        .admin-toggle {
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            z-index: 2000;
+            background: var(--primary);
+            color: white;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            font-size: 1.1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(26, 82, 118, 0.4);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .admin-toggle:hover { transform: scale(1.1); }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 0.8rem; }
+            .location-info { grid-template-columns: 1fr 1fr; }
+            .places-grid { grid-template-columns: 1fr 1fr; }
+            .info-panel { max-height: 40vh; }
+            .crud-modal { max-width: 100%; border-radius: 0; max-height: 100vh; }
+            .crud-header { border-radius: 0; }
+            .form-row { grid-template-columns: 1fr; }
+            .crud-tabs { overflow-x: auto; }
+            .crud-tab { padding: 8px 12px; font-size: 0.7rem; }
+        }
+
+        @media (max-width: 480px) {
+            .header { padding: 6px 10px; }
+            .header h1 { font-size: 0.7rem; }
+            .location-info { grid-template-columns: 1fr; }
+            .places-grid { grid-template-columns: 1fr; }
+            .info-panel { max-height: 35vh; }
+            .route-info { flex-direction: column; align-items: stretch; }
+            .route-details { justify-content: space-around; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==================== HEADER ==================== -->
+    <header class="header">
+        <div class="header-left">
+            <div class="header-logo">🏛️</div>
+            <h1>Kolfe Keranyo Trade <small>Subcity Trade Information System</small></h1>
+        </div>
+        <div class="header-actions">
+            <button class="header-btn" onclick="refreshData()" title="Refresh"><i class="fas fa-sync-alt"></i></button>
+            <button class="header-btn" onclick="centerOnUser()" title="My Location"><i class="fas fa-location-dot"></i></button>
+        </div>
+    </header>
+
+    <!-- ==================== STATUS BAR ==================== -->
+    <div class="status-bar" id="statusBar"><i class="fas fa-spinner fa-spin"></i> Initializing system...</div>
+
+    <!-- ==================== MAP ==================== -->
+    <div id="map"></div>
+
+    <!-- ==================== INFO PANEL ==================== -->
+    <div class="info-panel" id="infoPanel">
+        <div class="panel-header" onclick="togglePanel()">
+            <h3><i class="fas fa-store"></i> Market Information <span class="badge" id="locationCount">0</span></h3>
+            <button class="panel-toggle" id="panelToggle"><i class="fas fa-chevron-down"></i></button>
+        </div>
+        <div class="panel-content" id="panelContent">
+            <div class="location-info">
+                <div class="info-card"><div class="label">Latitude</div><div class="value" id="latitude">--</div></div>
+                <div class="info-card"><div class="label">Longitude</div><div class="value" id="longitude">--</div></div>
+                <div class="info-card"><div class="label">Nearby Markets</div><div class="value" id="nearbyCount">0</div></div>
+            </div>
+
+            <div class="accuracy-box">
+                <div class="accuracy-dot" id="accuracyDot"></div>
+                <div class="accuracy-text">Accuracy: <span id="accuracy">--</span> meters</div>
+            </div>
+
+            <div class="route-info" id="routeInfo">
+                <div class="route-details">
+                    <div class="route-detail"><div class="label">Distance</div><div class="value" id="routeDistance">0.0 km</div></div>
+                    <div class="route-detail"><div class="label">Duration</div><div class="value" id="routeTime">0 min</div></div>
+                </div>
+                <button class="clear-route-btn" onclick="clearRoute()"><i class="fas fa-times"></i> Clear</button>
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+
+            <div class="permission-box" id="permissionBox">
+                <i class="fas fa-location-arrow"></i>
+                <h4>Location Access Required</h4>
+                <p>Please allow location access to find nearby markets</p>
+                <button onclick="requestLocationPermission()"><i class="fas fa-check"></i> Allow Access</button>
+            </div>
+
+            <div class="places-header">
+                <h4><i class="fas fa-map-pin"></i> Nearby Markets</h4>
+                <span class="count" id="placesCount">0</span>
+            </div>
+            <div class="places-grid" id="placesGrid">
+                <div style="text-align:center;color:var(--text-gray);padding:20px;grid-column:1/-1;">
+                    <i class="fas fa-store" style="font-size:2rem;display:block;color:#ddd;"></i>
+                    <p>Waiting for location data...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== ITEMS MODAL ==================== -->
+    <div class="modal-overlay" id="itemsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-boxes"></i> <span id="modalLocationName">Items</span></h3>
+                <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="subcity-info" id="modalSubcity"></div>
+                <div class="items-list" id="itemsList">
+                    <div class="no-items"><i class="fas fa-box-open"></i><p>No items available</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== CRUD MODAL ==================== -->
+    <div class="crud-modal-overlay" id="crudModal">
+        <div class="crud-modal">
+            <div class="crud-header">
+                <h2><i class="fas fa-database"></i> Data Management</h2>
+                <button class="close-btn" onclick="closeCrudModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="crud-tabs">
+                <button class="crud-tab active" data-tab="locations" onclick="switchTab('locations')">
+                    <i class="fas fa-map-pin"></i> Locations <span class="badge" id="locBadge">0</span>
+                </button>
+                <button class="crud-tab" data-tab="items" onclick="switchTab('items')">
+                    <i class="fas fa-box"></i> Items <span class="badge" id="itemBadge">0</span>
+                </button>
+                <button class="crud-tab" data-tab="prices" onclick="switchTab('prices')">
+                    <i class="fas fa-money-bill"></i> Prices <span class="badge" id="priceBadge">0</span>
+                </button>
+            </div>
+            <div class="crud-body">
+                <div class="crud-tab-content active" id="tab-locations">
+                    <div class="crud-toolbar">
+                        <div class="search-box"><i class="fas fa-search"></i><input type="text" placeholder="Search..." oninput="filterTable('locations', this.value)"></div>
+                        <button class="btn-primary" onclick="showForm('location')"><i class="fas fa-plus"></i> Add Location</button>
+                    </div>
+                    <div id="locationsTable"></div>
+                </div>
+                <div class="crud-tab-content" id="tab-items">
+                    <div class="crud-toolbar">
+                        <div class="search-box"><i class="fas fa-search"></i><input type="text" placeholder="Search..." oninput="filterTable('items', this.value)"></div>
+                        <button class="btn-primary" onclick="showForm('item')"><i class="fas fa-plus"></i> Add Item</button>
+                    </div>
+                    <div id="itemsTable"></div>
+                </div>
+                <div class="crud-tab-content" id="tab-prices">
+                    <div class="crud-toolbar">
+                        <div class="search-box"><i class="fas fa-search"></i><input type="text" placeholder="Search..." oninput="filterTable('prices', this.value)"></div>
+                        <button class="btn-primary" onclick="showForm('price')"><i class="fas fa-plus"></i> Add Price</button>
+                    </div>
+                    <div id="pricesTable"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== FORM MODAL ==================== -->
+    <div class="form-modal-overlay" id="formModal">
+        <div class="form-modal">
+            <h3 id="formTitle"><i class="fas fa-plus"></i> Add New Location</h3>
+
+            <div class="mini-map-container">
+                <div id="miniMap"></div>
+                <div class="mini-map-hint"><i class="fas fa-hand-pointer"></i> Click on the map to select location</div>
+            </div>
+
+            <div class="selected-coords" id="selectedCoords">
+                <i class="fas fa-check-circle" style="color:var(--secondary);"></i>
+                Location selected: <strong id="selectedLat">--</strong>, <strong id="selectedLng">--</strong>
+            </div>
+
+            <form id="crudForm" onsubmit="submitForm(event)">
+                <input type="hidden" id="formType">
+                <input type="hidden" id="formId">
+                <div id="formFields"></div>
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" onclick="closeForm()">Cancel</button>
+                    <button type="submit" class="btn-submit">Save Location</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== TOAST ==================== -->
+    <div class="toast" id="toast"></div>
+
+    <!-- ==================== LOADING ==================== -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <h3 id="loadingMessage">Loading...</h3>
+            <p>Please wait</p>
+        </div>
+    </div>
+
+    <!-- ==================== ADMIN BUTTON ==================== -->
+    <button class="admin-toggle" onclick="openCrudModal()" title="Manage Data">
+        <i class="fas fa-database"></i>
+    </button>
+
+    <!-- ==================== SCRIPTS ==================== -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+    <script>
+        // ==========================================
+        // KOLFE KERANYO TRADE INFORMATION SYSTEM
+        // Complete Application
+        // ==========================================
+
+        // ==================== CONFIGURATION ====================
+        var CONFIG = {
+            API_URL: 'https://script.google.com/macros/s/AKfycbyFexYx1-v2ni_8k_A45CKAjjetXvrcjt1e7OGjLV0JywZ2Nha4S99hfdifurWYFU8F/exec',
+            DEFAULT_CENTER: [9.0245, 38.7465],
+            ZOOM_LEVEL: 14,
+            MAX_PLACES: 20
+        };
+
+        // ==================== STATE ====================
+        var state = {
+            map: null,
+            miniMap: null,
+            routingControl: null,
+            userMarker: null,
+            accuracyCircle: null,
+            locationMarkers: [],
+            marketData: [],
+            currentPosition: null,
+            watchId: null,
+            isPanelOpen: true,
+            locations: [],
+            items: [],
+            prices: [],
+            currentTab: 'locations',
+            selectedLat: null,
+            selectedLng: null,
+            tempMarker: null,
+            _miniTempMarker: null
+        };
+
+        // ==================== DOM REFS ====================
+        var DOM = {
+            statusBar: document.getElementById('statusBar'),
+            latitude: document.getElementById('latitude'),
+            longitude: document.getElementById('longitude'),
+            accuracy: document.getElementById('accuracy'),
+            accuracyDot: document.getElementById('accuracyDot'),
+            placesGrid: document.getElementById('placesGrid'),
+            placesCount: document.getElementById('placesCount'),
+            locationCount: document.getElementById('locationCount'),
+            nearbyCount: document.getElementById('nearbyCount'),
+            routeInfo: document.getElementById('routeInfo'),
+            routeDistance: document.getElementById('routeDistance'),
+            routeTime: document.getElementById('routeTime'),
+            errorMessage: document.getElementById('errorMessage'),
+            permissionBox: document.getElementById('permissionBox'),
+            loadingOverlay: document.getElementById('loadingOverlay'),
+            loadingMessage: document.getElementById('loadingMessage'),
+            itemsModal: document.getElementById('itemsModal'),
+            modalLocationName: document.getElementById('modalLocationName'),
+            modalSubcity: document.getElementById('modalSubcity'),
+            itemsList: document.getElementById('itemsList'),
+            panelContent: document.getElementById('panelContent'),
+            panelToggle: document.getElementById('panelToggle'),
+            crudModal: document.getElementById('crudModal'),
+            formModal: document.getElementById('formModal'),
+            toast: document.getElementById('toast'),
+            miniMap: document.getElementById('miniMap'),
+            selectedCoords: document.getElementById('selectedCoords'),
+            selectedLat: document.getElementById('selectedLat'),
+            selectedLng: document.getElementById('selectedLng')
+        };
+
+        // ==================== INITIALIZATION ====================
+        function init() {
+            updateStatus('Initializing system...', 'info');
+
+            state.map = L.map('map').setView(CONFIG.DEFAULT_CENTER, CONFIG.ZOOM_LEVEL);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(state.map);
+
+            loadFallbackData();
+            startLocationTracking();
+        }
+
+        // ==================== FALLBACK DATA ====================
+        function loadFallbackData() {
+            state.locations = [
+                { id: 'LOC-001', location_name: 'Kolfe Main Market', subcity: 'Kolfe Keranyo', woreda: 'Woreda 01',
+                    latitude: '9.0245', longitude: '38.7465',
+                    openstreetmap_url: 'https://www.openstreetmap.org/?mlat=9.0245&mlon=38.7465' },
+                { id: 'LOC-002', location_name: 'Keranyo Vegetable Market', subcity: 'Kolfe Keranyo', woreda: 'Woreda 03',
+                    latitude: '9.0345', longitude: '38.7565',
+                    openstreetmap_url: 'https://www.openstreetmap.org/?mlat=9.0345&mlon=38.7565' },
+                { id: 'LOC-003', location_name: 'Woreda 05 Grain Market', subcity: 'Kolfe Keranyo', woreda: 'Woreda 05',
+                    latitude: '9.0445', longitude: '38.7365',
+                    openstreetmap_url: 'https://www.openstreetmap.org/?mlat=9.0445&mlon=38.7365' },
+                { id: 'LOC-004', location_name: 'Kolfe Meat Market', subcity: 'Kolfe Keranyo', woreda: 'Woreda 02',
+                    latitude: '9.0145', longitude: '38.7565',
+                    openstreetmap_url: 'https://www.openstreetmap.org/?mlat=9.0145&mlon=38.7565' },
+                { id: 'LOC-005', location_name: 'Keranyo Dairy Market', subcity: 'Kolfe Keranyo', woreda: 'Woreda 04',
+                    latitude: '9.0245', longitude: '38.7665',
+                    openstreetmap_url: 'https://www.openstreetmap.org/?mlat=9.0245&mlon=38.7665' }
+            ];
+
+            state.items = [
+                { id: 'ITM-001', item_name: 'Teff', category: 'Grains', unit: 'KG' },
+                { id: 'ITM-002', item_name: 'Wheat', category: 'Grains', unit: 'KG' },
+                { id: 'ITM-003', item_name: 'Tomatoes', category: 'Vegetables', unit: 'KG' },
+                { id: 'ITM-004', item_name: 'Onions', category: 'Vegetables', unit: 'KG' },
+                { id: 'ITM-005', item_name: 'Beef', category: 'Meat', unit: 'KG' },
+                { id: 'ITM-006', item_name: 'Chicken', category: 'Meat', unit: 'KG' },
+                { id: 'ITM-007', item_name: 'Milk', category: 'Dairy', unit: 'Litre' },
+                { id: 'ITM-008', item_name: 'Cheese', category: 'Dairy', unit: 'KG' },
+                { id: 'ITM-009', item_name: 'Barley', category: 'Grains', unit: 'KG' },
+                { id: 'ITM-010', item_name: 'Maize', category: 'Grains', unit: 'KG' }
+            ];
+
+            state.prices = [
+                { id: 'PRC-001', location_id: 'LOC-001', item_id: 'ITM-001', item_name: 'Teff', price_per_unit: 65,
+                    currency: 'ETB', unit: 'KG' },
+                { id: 'PRC-002', location_id: 'LOC-001', item_id: 'ITM-002', item_name: 'Wheat', price_per_unit: 45,
+                    currency: 'ETB', unit: 'KG' },
+                { id: 'PRC-003', location_id: 'LOC-002', item_id: 'ITM-003', item_name: 'Tomatoes', price_per_unit: 80,
+                    currency: 'ETB', unit: 'KG' },
+                { id: 'PRC-004', location_id: 'LOC-002', item_id: 'ITM-004', item_name: 'Onions', price_per_unit: 55,
+                    currency: 'ETB', unit: 'KG' },
+                { id: 'PRC-005', location_id: 'LOC-003', item_id: 'ITM-009', item_name: 'Barley', price_per_unit: 35,
+                    currency: 'ETB', unit: 'KG' },
+                { id: 'PRC-006', location_id: 'LOC-003', item_id: 'ITM-010', item_name: 'Maize', price_per_unit: 30,
+                    currency: 'ETB', unit: 'KG' },
+                { id: 'PRC-007', location_id: 'LOC-004', item_id: 'ITM-005', item_name: 'Beef', price_per_unit: 250,
+                    currency: 'ETB', unit: 'KG' },
+                { id: 'PRC-008', location_id: 'LOC-004', item_id: 'ITM-006', item_name: 'Chicken', price_per_unit: 180,
+                    currency: 'ETB', unit: 'KG' },
+                { id: 'PRC-009', location_id: 'LOC-005', item_id: 'ITM-007', item_name: 'Milk', price_per_unit: 60,
+                    currency: 'ETB', unit: 'Litre' },
+                { id: 'PRC-010', location_id: 'LOC-005', item_id: 'ITM-008', item_name: 'Cheese', price_per_unit: 200,
+                    currency: 'ETB', unit: 'KG' }
+            ];
+
+            buildMarketData();
+            DOM.locationCount.textContent = state.locations.length;
+            updateStatus('Data loaded: ' + state.locations.length + ' markets', 'success');
+            if (state.currentPosition) showNearbyPlaces(state.currentPosition);
+            if (DOM.crudModal.classList.contains('show')) loadCrudData();
+        }
+
+        function buildMarketData() {
+            state.marketData = state.locations.map(function(loc) {
+                var locationPrices = state.prices.filter(function(p) { return p.location_id === loc.id; });
+                return {
+                    location: loc,
+                    items: locationPrices,
+                    total_items: locationPrices.length
+                };
+            });
+        }
+
+        // ==================== LOCATION TRACKING ====================
+        function startLocationTracking() {
+            if (!navigator.geolocation) {
+                updateStatus('Geolocation not supported', 'error');
+                DOM.permissionBox.classList.add('show');
+                return;
+            }
+
+            updateStatus('Requesting location...', 'info');
+
+            if (navigator.permissions) {
+                navigator.permissions.query({ name: 'geolocation' }).then(function(result) {
+                    if (result.state === 'denied') {
+                        DOM.permissionBox.classList.add('show');
+                        updateStatus('Location permission denied', 'error');
+                    }
+                });
+            }
+
+            state.watchId = navigator.geolocation.watchPosition(
+                onLocationSuccess,
+                onLocationError, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
+        }
+
+        function onLocationSuccess(position) {
+            var lat = position.coords.latitude;
+            var lng = position.coords.longitude;
+            var acc = position.coords.accuracy;
+
+            state.currentPosition = { lat: lat, lng: lng };
+            DOM.latitude.textContent = lat.toFixed(6);
+            DOM.longitude.textContent = lng.toFixed(6);
+            DOM.accuracy.textContent = Math.round(acc);
+
+            var dot = DOM.accuracyDot;
+            if (acc < 15) dot.className = 'accuracy-dot excellent';
+            else if (acc < 50) dot.className = 'accuracy-dot good';
+            else dot.className = 'accuracy-dot poor';
+
+            if (state.userMarker) {
+                state.userMarker.setLatLng([lat, lng]);
+            } else {
+                state.userMarker = L.marker([lat, lng], {
+                    icon: L.divIcon({
+                        className: 'user-marker',
+                        html: '<div style="background:#1A5276;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',
+                        iconSize: [16, 16]
+                    })
+                }).addTo(state.map);
+            }
+
+            if (state.accuracyCircle) {
+                state.accuracyCircle.setLatLng([lat, lng]);
+                state.accuracyCircle.setRadius(acc);
+            } else {
+                state.accuracyCircle = L.circle([lat, lng], {
+                    radius: acc,
+                    color: '#2980B9',
+                    fillColor: '#2980B9',
+                    fillOpacity: 0.1,
+                    weight: 2
+                }).addTo(state.map);
+            }
+
+            state.map.setView([lat, lng], CONFIG.ZOOM_LEVEL);
+            updateStatus('Location updated', 'success');
+            DOM.permissionBox.classList.remove('show');
+
+            if (state.marketData && state.marketData.length) {
+                showNearbyPlaces(state.currentPosition);
+            }
+        }
+
+        function onLocationError(error) {
+            var msg = 'Location error: ';
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    msg = 'Location access denied.';
+                    DOM.permissionBox.classList.add('show');
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    msg = 'Location unavailable.';
+                    break;
+                case error.TIMEOUT:
+                    msg = 'Location timed out.';
+                    break;
+                default:
+                    msg = 'Unknown error.';
+            }
+            showError(msg);
+            updateStatus(msg, 'error');
+        }
+
+        function requestLocationPermission() {
+            DOM.permissionBox.classList.remove('show');
+            showLoading('Requesting location...');
+            navigator.geolocation.getCurrentPosition(
+                function(pos) { hideLoading();
+                    onLocationSuccess(pos); },
+                function(err) { hideLoading();
+                    onLocationError(err); }, { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
+
+        function centerOnUser() {
+            if (state.currentPosition) {
+                state.map.setView([state.currentPosition.lat, state.currentPosition.lng], CONFIG.ZOOM_LEVEL);
+                updateStatus('Centered on your location', 'success');
+            } else {
+                showError('Location not available yet');
+            }
+        }
+
+        // ==================== SHOW NEARBY PLACES ====================
+        function showNearbyPlaces(position) {
+            if (!state.marketData || !state.marketData.length) return;
+
+            var withDistance = state.marketData.map(function(market) {
+                var mLat = parseFloat(market.location.latitude);
+                var mLng = parseFloat(market.location.longitude);
+                return { market: market, distance: calculateDistance(position.lat, position.lng, mLat, mLng) };
+            });
+
+            withDistance.sort(function(a, b) { return a.distance - b.distance; });
+            var nearest = withDistance.slice(0, CONFIG.MAX_PLACES);
+
+            DOM.nearbyCount.textContent = nearest.length;
+            DOM.placesCount.textContent = nearest.length;
+
+            state.locationMarkers.forEach(function(m) { state.map.removeLayer(m); });
+            state.locationMarkers = [];
+
+            var grid = DOM.placesGrid;
+            if (nearest.length === 0) {
+                grid.innerHTML =
+                    '<div style="text-align:center;color:var(--text-gray);padding:20px;grid-column:1/-1;"><i class="fas fa-store" style="font-size:2rem;display:block;color:#ddd;"></i><p>No markets found nearby</p></div>';
+                return;
+            }
+
+            var html = '';
+            for (var i = 0; i < nearest.length; i++) {
+                var m = nearest[i].market;
+                html += '<div class="place-card">';
+                html += '<span class="rank">' + (i + 1) + '</span>';
+                html += '<div class="name">' + m.location.location_name + '</div>';
+                html += '<div class="distance"><i class="fas fa-location-arrow"></i> ' + nearest[i].distance.toFixed(2) +
+                    ' km</div>';
+                html += '<div class="subcity">' + m.location.subcity + '</div>';
+                html += '<span class="items-count"><i class="fas fa-box"></i> ' + m.total_items + ' items</span><br>';
+                html +=
+                    '<button class="route-btn" onclick="event.stopPropagation();showLocationItems(\'' + m.location.id +
+                    '\')"><i class="fas fa-eye"></i> View Items</button>';
+                html +=
+                    ' <button class="route-btn" onclick="event.stopPropagation();calculateRoute(' + m.location
+                    .latitude + ',' + m.location.longitude + ',\'' + m.location.location_name +
+                    '\')" style="background:#8E44AD;"><i class="fas fa-route"></i> Route</button>';
+                html += '</div>';
+            }
+            grid.innerHTML = html;
+
+            for (var j = 0; j < nearest.length; j++) {
+                var m = nearest[j].market;
+                var marker = L.marker([parseFloat(m.location.latitude), parseFloat(m.location.longitude)], {
+                    icon: L.divIcon({
+                        className: 'market-marker',
+                        html: '<div style="background:linear-gradient(135deg,#27AE60,#1E8449);color:white;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;font-size:10px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,0.2);">' +
+                            (j + 1) + '</div>',
+                        iconSize: [28, 28]
+                    })
+                }).addTo(state.map);
+
+                marker.bindPopup(
+                    '<b>' + m.location.location_name + '</b><br>' + m.location.subcity +
+                    '<br><button onclick="showLocationItems(\'' + m.location.id +
+                    '\')" style="background:#1A5276;color:white;border:none;padding:4px 12px;border-radius:12px;margin-top:4px;cursor:pointer;"><i class="fas fa-eye"></i> View Items</button>' +
+                    ' <button onclick="calculateRoute(' + m.location.latitude + ',' + m.location.longitude +
+                    ',\'' + m.location.location_name +
+                    '\')" style="background:#8E44AD;color:white;border:none;padding:4px 12px;border-radius:12px;margin-top:4px;cursor:pointer;"><i class="fas fa-route"></i> Route</button>'
+                );
+                state.locationMarkers.push(marker);
+            }
+        }
+
+        // ==================== SHOW LOCATION ITEMS ====================
+        function showLocationItems(locationId) {
+            var market = state.marketData.find(function(m) { return m.location.id === locationId; });
+            if (!market) { showError('Location not found'); return; }
+
+            DOM.modalLocationName.textContent = market.location.location_name;
+            DOM.modalSubcity.textContent = market.location.subcity + (market.location.woreda ? ' · Woreda ' + market.location
+                .woreda : '');
+
+            if (market.items.length === 0) {
+                DOM.itemsList.innerHTML =
+                    '<div class="no-items"><i class="fas fa-box-open"></i><p>No items available at this location</p></div>';
+            } else {
+                var html = '';
+                for (var i = 0; i < market.items.length; i++) {
+                    var item = market.items[i];
+                    html += '<div class="item-row">';
+                    html += '<div><div class="item-name">' + item.item_name + '</div><div class="item-category">' + (
+                        item.category || 'General') + ' · ' + (item.unit || 'KG') + '</div></div>';
+                    html += '<div style="text-align:right;"><div class="price">' + item.price_per_unit +
+                        '</div><div class="currency">' + item.currency + ' per ' + item.unit + '</div></div>';
+                    html += '</div>';
+                }
+                DOM.itemsList.innerHTML = html;
+            }
+
+            DOM.itemsModal.classList.add('show');
+        }
+
+        function closeModal() { DOM.itemsModal.classList.remove('show'); }
+
+        // ==================== ROUTE FUNCTION ====================
+        function calculateRoute(destLat, destLng, placeName) {
+            if (!state.currentPosition) {
+                showError('Please wait for location to be available');
+                return;
+            }
+
+            if (state.routingControl) {
+                state.map.removeControl(state.routingControl);
+                state.routingControl = null;
+            }
+
+            showLoading('Calculating route...');
+            updateStatus('Finding route to ' + placeName + '...', 'route');
+
+            try {
+                state.routingControl = L.Routing.control({
+                    waypoints: [
+                        L.latLng(state.currentPosition.lat, state.currentPosition.lng),
+                        L.latLng(destLat, destLng)
+                    ],
+                    routeWhileDragging: false,
+                    showAlternatives: true,
+                    fitSelectedRoutes: true,
+                    lineOptions: { styles: [{ color: '#8E44AD', opacity: 0.8, weight: 5 }] },
+                    router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
+                    createMarker: function() { return null; }
+                }).addTo(state.map);
+
+                DOM.routeInfo.classList.add('show');
+
+                state.routingControl.on('routesfound', function(e) {
+                    var route = e.routes[0];
+                    var distance = (route.summary.totalDistance / 1000).toFixed(1);
+                    var time = Math.round(route.summary.totalTime / 60);
+                    DOM.routeDistance.textContent = distance + ' km';
+                    DOM.routeTime.textContent = time + ' min';
+                    updateStatus('Route found: ' + distance + ' km, ' + time + ' min', 'success');
+                    hideLoading();
+                });
+
+                state.routingControl.on('routingerror', function() {
+                    showError('Could not calculate route. Showing straight line.');
+                    hideLoading();
+                    drawSimpleRoute(state.currentPosition.lat, state.currentPosition.lng, destLat, destLng);
+                });
+
+                setTimeout(function() {
+                    if (DOM.routeInfo.classList.contains('show') &&
+                        DOM.routeDistance.textContent === '0.0 km') {
+                        hideLoading();
+                        showError('Route calculation timed out. Showing straight line.');
+                        drawSimpleRoute(state.currentPosition.lat, state.currentPosition.lng, destLat, destLng);
+                    }
+                }, 15000);
+
+            } catch (error) {
+                showError('Failed to create route. Showing straight line.');
+                hideLoading();
+                drawSimpleRoute(state.currentPosition.lat, state.currentPosition.lng, destLat, destLng);
+            }
+        }
+
+        function drawSimpleRoute(startLat, startLng, endLat, endLng) {
+            if (state.routingControl) {
+                state.map.removeControl(state.routingControl);
+                state.routingControl = null;
+            }
+
+            var latlngs = [
+                L.latLng(startLat, startLng),
+                L.latLng(endLat, endLng)
+            ];
+
+            var line = L.polyline(latlngs, {
+                color: '#8E44AD',
+                opacity: 0.8,
+                weight: 5,
+                dashArray: '10, 10'
+            }).addTo(state.map);
+
+            var distance = calculateDistance(startLat, startLng, endLat, endLng);
+            var time = Math.round(distance * 2);
+
+            DOM.routeDistance.textContent = distance.toFixed(1) + ' km';
+            DOM.routeTime.textContent = time + ' min';
+            DOM.routeInfo.classList.add('show');
+
+            updateStatus('Route shown (straight line) - ' + distance.toFixed(1) + ' km', 'warning');
+
+            state.routingControl = {
+                _line: line,
+                remove: function() {
+                    if (this._line) {
+                        state.map.removeLayer(this._line);
+                        this._line = null;
+                    }
+                }
+            };
+        }
+
+        function clearRoute() {
+            if (state.routingControl) {
+                state.map.removeControl(state.routingControl);
+                state.routingControl = null;
+            }
+            DOM.routeInfo.classList.remove('show');
+            updateStatus('Route cleared', 'info');
+        }
+
+        // ==================== CRUD MODAL ====================
+        function openCrudModal() {
+            DOM.crudModal.classList.add('show');
+            loadCrudData();
+        }
+
+        function closeCrudModal() {
+            DOM.crudModal.classList.remove('show');
+            if (state.miniMap) {
+                state.miniMap.off('click');
+                state.miniMap.remove();
+                state.miniMap = null;
+            }
+        }
+
+        function switchTab(tab) {
+            state.currentTab = tab;
+            document.querySelectorAll('.crud-tab').forEach(function(t) {
+                t.classList.toggle('active', t.dataset.tab === tab);
+            });
+            document.querySelectorAll('.crud-tab-content').forEach(function(c) {
+                c.classList.toggle('active', c.id === 'tab-' + tab);
+            });
+            loadCrudData();
+        }
+
+        function loadCrudData() {
+            var tab = state.currentTab;
+            if (tab === 'locations') renderLocations();
+            else if (tab === 'items') renderItems();
+            else if (tab === 'prices') renderPrices();
+        }
+
+        // ==================== RENDER FUNCTIONS ====================
+        function renderLocations() {
+            var container = document.getElementById('locationsTable');
+            document.getElementById('locBadge').textContent = state.locations.length;
+
+            if (state.locations.length === 0) {
+                container.innerHTML =
+                    '<div class="empty-state"><i class="fas fa-map-pin"></i><p>No locations found. Add one!</p></div>';
+                return;
+            }
+
+            var html =
+                '<table class="data-table"><thead><tr><th>ID</th><th>Name</th><th>Subcity</th><th>Woreda</th><th>Coordinates</th><th>OSM</th><th>Actions</th></tr></thead><tbody>';
+            for (var i = 0; i < state.locations.length; i++) {
+                var loc = state.locations[i];
+                html += '<tr><td><strong>' + loc.id + '</strong></td><td>' + loc.location_name + '</td><td>' + loc
+                    .subcity + '</td><td>' + loc.woreda + '</td><td>' + loc.latitude + ', ' + loc.longitude +
+                    '</td><td><a href="' + loc.openstreetmap_url +
+                    '" target="_blank"><i class="fas fa-external-link-alt"></i></a></td>';
+                html +=
+                    '<td class="actions"><button class="edit-btn" onclick="editLocation(\'' + loc.id +
+                    '\')"><i class="fas fa-edit"></i></button><button class="delete-btn" onclick="deleteLocation(\'' +
+                    loc.id + '\')"><i class="fas fa-trash"></i></button></td></tr>';
+            }
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function renderItems() {
+            var container = document.getElementById('itemsTable');
+            document.getElementById('itemBadge').textContent = state.items.length;
+
+            if (state.items.length === 0) {
+                container.innerHTML =
+                    '<div class="empty-state"><i class="fas fa-box"></i><p>No items found. Add one!</p></div>';
+                return;
+            }
+
+            var html =
+                '<table class="data-table"><thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Unit</th><th>Actions</th></tr></thead><tbody>';
+            for (var i = 0; i < state.items.length; i++) {
+                var item = state.items[i];
+                html += '<tr><td><strong>' + item.id + '</strong></td><td>' + item.item_name + '</td><td>' + item
+                    .category + '</td><td>' + item.unit + '</td>';
+                html +=
+                    '<td class="actions"><button class="edit-btn" onclick="editItem(\'' + item.id +
+                    '\')"><i class="fas fa-edit"></i></button><button class="delete-btn" onclick="deleteItem(\'' +
+                    item.id + '\')"><i class="fas fa-trash"></i></button></td></tr>';
+            }
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function renderPrices() {
+            var container = document.getElementById('pricesTable');
+            document.getElementById('priceBadge').textContent = state.prices.length;
+
+            if (state.prices.length === 0) {
+                container.innerHTML =
+                    '<div class="empty-state"><i class="fas fa-money-bill"></i><p>No prices found. Add one!</p></div>';
+                return;
+            }
+
+            var html =
+                '<table class="data-table"><thead><tr><th>ID</th><th>Location</th><th>Item</th><th>Price</th><th>Currency</th><th>Unit</th><th>Actions</th></tr></thead><tbody>';
+            for (var i = 0; i < state.prices.length; i++) {
+                var price = state.prices[i];
+                var location = state.locations.find(function(l) { return l.id === price.location_id; });
+                var item = state.items.find(function(it) { return it.id === price.item_id; });
+                html += '<tr><td><strong>' + price.id + '</strong></td><td>' + (location ? location.location_name :
+                    price.location_id) + '</td><td>' + (item ? item.item_name : price.item_name) +
+                    '</td><td><strong>' + price.price_per_unit + '</strong></td><td>' + price.currency +
+                    '</td><td>' + price.unit + '</td>';
+                html +=
+                    '<td class="actions"><button class="edit-btn" onclick="editPrice(\'' + price.id +
+                    '\')"><i class="fas fa-edit"></i></button><button class="delete-btn" onclick="deletePrice(\'' +
+                    price.id + '\')"><i class="fas fa-trash"></i></button></td></tr>';
+            }
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // ==================== FILTER TABLE ====================
+        function filterTable(tab, query) {
+            var rows = document.querySelectorAll('#tab-' + tab + ' .data-table tbody tr');
+            query = query.toLowerCase();
+            rows.forEach(function(row) {
+                var text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+
+        // ==================== INIT MINI MAP ====================
+        function initMiniMap() {
+            if (state.miniMap) {
+                state.miniMap.off('click');
+                state.miniMap.remove();
+                state.miniMap = null;
+            }
+
+            state.miniMap = L.map('miniMap', {
+                zoomControl: true,
+                attributionControl: true
+            }).setView(CONFIG.DEFAULT_CENTER, CONFIG.ZOOM_LEVEL);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(state.miniMap);
+
+            state.miniMap.on('click', function(e) {
+                handleMiniMapClick(e);
+            });
+
+            if (state.currentPosition) {
+                L.marker([state.currentPosition.lat, state.currentPosition.lng], {
+                    icon: L.divIcon({
+                        className: 'user-marker',
+                        html: '<div style="background:#1A5276;width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',
+                        iconSize: [12, 12]
+                    })
+                }).addTo(state.miniMap);
+                state.miniMap.setView([state.currentPosition.lat, state.currentPosition.lng], CONFIG.ZOOM_LEVEL);
+            }
+
+            if (state._miniTempMarker) {
+                state.miniMap.removeLayer(state._miniTempMarker);
+                state._miniTempMarker = null;
+            }
+
+            setTimeout(function() {
+                state.miniMap.invalidateSize();
+            }, 100);
+        }
+
+        function handleMiniMapClick(e) {
+            var lat = e.latlng.lat;
+            var lng = e.latlng.lng;
+
+            state.selectedLat = lat;
+            state.selectedLng = lng;
+
+            var latInput = document.querySelector('#formFields input[name="latitude"]');
+            var lngInput = document.querySelector('#formFields input[name="longitude"]');
+            var osmInput = document.querySelector('#formFields input[name="osmUrl"]');
+
+            if (latInput) {
+                latInput.value = lat.toFixed(6);
+                var event = new Event('input', { bubbles: true });
+                latInput.dispatchEvent(event);
+            }
+            if (lngInput) {
+                lngInput.value = lng.toFixed(6);
+                var event = new Event('input', { bubbles: true });
+                lngInput.dispatchEvent(event);
+            }
+            if (osmInput) {
+                osmInput.value = 'https://www.openstreetmap.org/?mlat=' + lat.toFixed(6) + '&mlon=' + lng.toFixed(6);
+            }
+
+            DOM.selectedCoords.classList.add('show');
+            DOM.selectedLat.textContent = lat.toFixed(6);
+            DOM.selectedLng.textContent = lng.toFixed(6);
+
+            if (state._miniTempMarker) {
+                state.miniMap.removeLayer(state._miniTempMarker);
+            }
+
+            state._miniTempMarker = L.marker([lat, lng], {
+                icon: L.divIcon({
+                    className: 'temp-marker',
+                    html: '<div style="background:#E74C3C;width:16px;height:16px;border-radius:50%;border:2px solid white;box-shadow:0 0 20px rgba(231,76,60,0.6);"></div>',
+                    iconSize: [16, 16]
+                })
+            }).addTo(state.miniMap);
+
+            state.miniMap.setView([lat, lng], 16);
+
+            if (state.map) {
+                if (state.tempMarker) {
+                    state.map.removeLayer(state.tempMarker);
+                }
+                state.tempMarker = L.marker([lat, lng], {
+                    icon: L.divIcon({
+                        className: 'temp-marker',
+                        html: '<div style="background:#E74C3C;width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 0 20px rgba(231,76,60,0.6);"></div>',
+                        iconSize: [20, 20]
+                    })
+                }).addTo(state.map);
+
+                state.tempMarker.bindPopup(
+                    '<b>Selected Location</b><br>Lat: ' + lat.toFixed(6) + '<br>Lng: ' + lng.toFixed(6)
+                ).openPopup();
+            }
+
+            showToast('Location selected!', 'success');
+        }
+
+        // ==================== FORM HANDLING ====================
+        // ==================== FORM HANDLING (FIXED) ====================
+function showForm(type, data) {
+    var modal = DOM.formModal;
+    var title = document.getElementById('formTitle');
+    var fields = document.getElementById('formFields');
+    document.getElementById('formType').value = type;
+    document.getElementById('formId').value = data ? data.id : '';
+
+    var isEdit = !!data;
+    title.innerHTML = '<i class="fas fa-' + (isEdit ? 'edit' : 'plus') + '"></i> ' + (isEdit ? 'Edit' : 'Add New') +
+        ' ' + type.charAt(0).toUpperCase() + type.slice(1);
+
+    state.selectedLat = null;
+    state.selectedLng = null;
+    DOM.selectedCoords.classList.remove('show');
+
+    if (type === 'location') {
+        fields.innerHTML = `
+            <div class="form-group">
+                <label>Location Name *</label>
+                <input type="text" name="name" required value="${data ? data.location_name : ''}" placeholder="Enter market name">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Subcity</label>
+                    <input type="text" name="subcity" value="${data ? data.subcity : 'Kolfe Keranyo'}">
+                </div>
+                <div class="form-group">
+                    <label>Woreda</label>
+                    <input type="text" name="woreda" value="${data ? data.woreda : ''}">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Latitude * <span class="label-hint">Click map to auto-fill</span></label>
+                    <input type="number" step="any" name="latitude" id="latInput" required value="${data ? data.latitude : ''}" placeholder="e.g. 9.0245">
+                </div>
+                <div class="form-group">
+                    <label>Longitude * <span class="label-hint">Click map to auto-fill</span></label>
+                    <input type="number" step="any" name="longitude" id="lngInput" required value="${data ? data.longitude : ''}" placeholder="e.g. 38.7465">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>OpenStreetMap URL <span class="label-hint">Auto-generated when clicking map</span></label>
+                <input type="url" name="osmUrl" placeholder="https://www.openstreetmap.org/..." value="${data ? data.openstreetmap_url : ''}">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea name="description" placeholder="Describe this market location">${data ? data.description : ''}</textarea>
+            </div>
+        `;
+    } else if (type === 'item') {
+        fields.innerHTML = `
+            <div class="form-group"><label>Item Name *</label><input type="text" name="name" required value="${data ? data.item_name : ''}"></div>
+            <div class="form-row">
+                <div class="form-group"><label>Category *</label><input type="text" name="category" required value="${data ? data.category : 'General'}"></div>
+                <div class="form-group"><label>Unit *</label><input type="text" name="unit" required value="${data ? data.unit : 'KG'}"></div>
+            </div>
+            <div class="form-group"><label>Description</label><textarea name="description">${data ? data.description : ''}</textarea></div>
+        `;
+    } else if (type === 'price') {
+        var locationOptions = state.locations.map(function(l) {
+            return '<option value="' + l.id + '" ' + (data && data.location_id === l.id ? 'selected' : '') +
+                '>' + l.location_name + '</option>';
+        }).join('');
+        var itemOptions = state.items.map(function(i) {
+            return '<option value="' + i.id + '" ' + (data && data.item_id === i.id ? 'selected' : '') +
+                '>' + i.item_name + '</option>';
+        }).join('');
+
+        fields.innerHTML = `
+            <div class="form-group"><label>Location *</label><select name="locationId" required><option value="">Select Location</option>${locationOptions}</select></div>
+            <div class="form-group"><label>Item *</label><select name="itemId" required><option value="">Select Item</option>${itemOptions}</select></div>
+            <div class="form-row">
+                <div class="form-group"><label>Price per Unit *</label><input type="number" step="0.01" name="price" required value="${data ? data.price_per_unit : ''}"></div>
+                <div class="form-group"><label>Currency</label><input type="text" name="currency" value="${data ? data.currency : 'ETB'}"></div>
+            </div>
+            <div class="form-group"><label>Unit</label><input type="text" name="unit" value="${data ? data.unit : 'KG'}"></div>
+        `;
+    }
+
+    modal.classList.add('show');
+
+    setTimeout(function() {
+        initMiniMap();
+    }, 200);
+}
+
+function closeForm() {
+    // Close the form modal
+    DOM.formModal.classList.remove('show');
+    
+    // Safely remove mini map if it exists
+    if (state.miniMap) {
+        try {
+            state.miniMap.off('click');
+            state.miniMap.remove();
+        } catch (e) {
+            // Ignore errors when removing map
+        }
+        state.miniMap = null;
+    }
+    
+    // Safely remove temp marker from main map
+    if (state.tempMarker) {
+        try {
+            state.map.removeLayer(state.tempMarker);
+        } catch (e) {
+            // Ignore errors
+        }
+        state.tempMarker = null;
+    }
+    
+    // Safely remove mini temp marker
+    if (state._miniTempMarker) {
+        try {
+            if (state.miniMap) {
+                state.miniMap.removeLayer(state._miniTempMarker);
+            }
+        } catch (e) {
+            // Ignore errors
+        }
+        state._miniTempMarker = null;
+    }
+    
+    // Reset selection state
+    state.selectedLat = null;
+    state.selectedLng = null;
+    DOM.selectedCoords.classList.remove('show');
+}
+
+function submitForm(e) {
+    e.preventDefault();
+    var form = document.getElementById('crudForm');
+    var formData = new FormData(form);
+    var data = {};
+    formData.forEach(function(value, key) { data[key] = value; });
+
+    var type = document.getElementById('formType').value;
+    var id = document.getElementById('formId').value;
+    if (id) data.id = id;
+
+    if (type === 'location') {
+        if (id) {
+            var index = state.locations.findIndex(function(l) { return l.id === id; });
+            if (index !== -1) {
+                state.locations[index] = {
+                    id: id,
+                    location_name: data.name,
+                    subcity: data.subcity || 'Kolfe Keranyo',
+                    woreda: data.woreda || '',
+                    latitude: data.latitude,
+                    longitude: data.longitude,
+                    openstreetmap_url: data.osmUrl || 'https://www.openstreetmap.org/?mlat=' + data.latitude + '&mlon=' + data.longitude,
+                    description: data.description || ''
+                };
+            }
+        } else {
+            var newId = 'LOC-' + String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+            state.locations.push({
+                id: newId,
+                location_name: data.name,
+                subcity: data.subcity || 'Kolfe Keranyo',
+                woreda: data.woreda || '',
+                latitude: data.latitude,
+                longitude: data.longitude,
+                openstreetmap_url: data.osmUrl || 'https://www.openstreetmap.org/?mlat=' + data.latitude + '&mlon=' + data.longitude,
+                description: data.description || ''
+            });
+        }
+    } else if (type === 'item') {
+        if (id) {
+            var idx = state.items.findIndex(function(i) { return i.id === id; });
+            if (idx !== -1) {
+                state.items[idx] = { id: id, item_name: data.name, category: data.category || 'General',
+                    unit: data.unit || 'KG', description: data.description || '' };
+            }
+        } else {
+            var newId2 = 'ITM-' + String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+            state.items.push({ id: newId2, item_name: data.name, category: data.category || 'General',
+                unit: data.unit || 'KG', description: data.description || '' });
+        }
+    } else if (type === 'price') {
+        var loc = state.locations.find(function(l) { return l.id === data.locationId; });
+        var itm = state.items.find(function(i) { return i.id === data.itemId; });
+        if (id) {
+            var pIdx = state.prices.findIndex(function(p) { return p.id === id; });
+            if (pIdx !== -1) {
+                state.prices[pIdx] = { id: id, location_id: data.locationId, item_id: data.itemId,
+                    item_name: itm ? itm.item_name : 'Unknown', price_per_unit: parseFloat(data.price),
+                    currency: data.currency || 'ETB', unit: data.unit || 'KG' };
+            }
+        } else {
+            var newId3 = 'PRC-' + String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+            state.prices.push({ id: newId3, location_id: data.locationId, item_id: data.itemId,
+                item_name: itm ? itm.item_name : 'Unknown', price_per_unit: parseFloat(data.price),
+                currency: data.currency || 'ETB', unit: data.unit || 'KG' });
+        }
+    }
+
+    buildMarketData();
+    closeForm();
+    loadCrudData();
+    if (state.currentPosition) showNearbyPlaces(state.currentPosition);
+    showToast('Saved successfully!', 'success');
+}
+
+        // ==================== CRUD ACTIONS ====================
+        function editLocation(id) {
+            var data = state.locations.find(function(l) { return l.id === id; });
+            if (data) showForm('location', data);
+        }
+
+        function deleteLocation(id) {
+            if (!confirm('Delete this location permanently?')) return;
+            state.locations = state.locations.filter(function(l) { return l.id !== id; });
+            state.prices = state.prices.filter(function(p) { return p.location_id !== id; });
+            buildMarketData();
+            loadCrudData();
+            if (state.currentPosition) showNearbyPlaces(state.currentPosition);
+            showToast('Location deleted!', 'success');
+        }
+
+        function editItem(id) {
+            var data = state.items.find(function(i) { return i.id === id; });
+            if (data) showForm('item', data);
+        }
+
+        function deleteItem(id) {
+            if (!confirm('Delete this item permanently?')) return;
+            state.items = state.items.filter(function(i) { return i.id !== id; });
+            state.prices = state.prices.filter(function(p) { return p.item_id !== id; });
+            buildMarketData();
+            loadCrudData();
+            showToast('Item deleted!', 'success');
+        }
+
+        function editPrice(id) {
+            var data = state.prices.find(function(p) { return p.id === id; });
+            if (data) showForm('price', data);
+        }
+
+        function deletePrice(id) {
+            if (!confirm('Delete this price permanently?')) return;
+            state.prices = state.prices.filter(function(p) { return p.id !== id; });
+            buildMarketData();
+            loadCrudData();
+            if (state.currentPosition) showNearbyPlaces(state.currentPosition);
+            showToast('Price deleted!', 'success');
+        }
+
+        // ==================== UTILITY FUNCTIONS ====================
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            var R = 6371;
+            var dLat = (lat2 - lat1) * Math.PI / 180;
+            var dLon = (lon2 - lon1) * Math.PI / 180;
+            var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI /
+                180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
+
+        function togglePanel() {
+            state.isPanelOpen = !state.isPanelOpen;
+            DOM.panelContent.style.display = state.isPanelOpen ? 'block' : 'none';
+            DOM.panelToggle.innerHTML = state.isPanelOpen ? '<i class="fas fa-chevron-down"></i>' :
+                '<i class="fas fa-chevron-up"></i>';
+        }
+
+        function refreshData() {
+            updateStatus('Refreshing...', 'info');
+            loadFallbackData();
+            if (state.currentPosition) showNearbyPlaces(state.currentPosition);
+        }
+
+        function updateStatus(message, type) {
+            type = type || 'info';
+            var icons = { info: 'fa-info-circle', success: 'fa-check-circle', warning: 'fa-exclamation-triangle',
+                error: 'fa-exclamation-circle', route: 'fa-route' };
+            DOM.statusBar.innerHTML = '<i class="fas ' + (icons[type] || icons.info) + '"></i> ' + message;
+            DOM.statusBar.className = 'status-bar ' + type;
+        }
+
+        function showError(message) {
+            DOM.errorMessage.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + message;
+            DOM.errorMessage.classList.add('show');
+            setTimeout(function() { DOM.errorMessage.classList.remove('show'); }, 5000);
+        }
+
+        function showLoading(message) {
+            DOM.loadingMessage.textContent = message || 'Loading...';
+            DOM.loadingOverlay.classList.add('show');
+        }
+
+        function hideLoading() { DOM.loadingOverlay.classList.remove('show'); }
+
+        function showToast(message, type) {
+            type = type || 'success';
+            var toast = DOM.toast;
+            toast.textContent = message;
+            toast.className = 'toast ' + type;
+            toast.classList.add('show');
+            setTimeout(function() { toast.classList.remove('show'); }, 3000);
+        }
+
+        // ==================== KEYBOARD SHORTCUTS ====================
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+                closeCrudModal();
+                closeForm();
+            }
+            if (e.key === 'r' || e.key === 'R') refreshData();
+            if (e.key === 'c' || e.key === 'C') centerOnUser();
+        });
+
+        // ==================== INIT ====================
+        document.addEventListener('DOMContentLoaded', init);
+        window.addEventListener('beforeunload', function() {
+            if (state.watchId) navigator.geolocation.clearWatch(state.watchId);
+        });
+    </script>
+</body>
+</html>
